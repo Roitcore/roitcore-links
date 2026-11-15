@@ -111,7 +111,7 @@
     bottom:-6px;
     left:50%;
     transform:translateX(-50%);
-    background:var(--live);
+    background:var(--fg-dim);
     color:#fff;
     font-size:10px;
     font-weight:700;
@@ -124,10 +124,16 @@
     align-items:center;
     gap:5px;
     white-space:nowrap;
+    transition: background .25s ease;
   }
+  .live-chip.is-live{ background:var(--live); }
   .live-dot{
     width:6px;height:6px;border-radius:50%;background:#fff;
+    opacity:.6;
+  }
+  .live-chip.is-live .live-dot{
     animation:pulse 1.8s ease-in-out infinite;
+    opacity:1;
   }
   @media (prefers-reduced-motion: reduce){ .live-dot{animation:none} }
   @keyframes pulse{
@@ -260,7 +266,7 @@
 
   <div class="avatar-wrap">
     <img class="avatar" src="img/logo.png" alt="roitcore Logo" width="112" height="112">
-    <div class="live-chip"><span class="live-dot"></span>Offline</div>
+    <div class="live-chip" id="live-chip"><span class="live-dot"></span><span id="live-label">Offline</span></div>
   </div>
 
   <div class="identity">
@@ -311,5 +317,45 @@
   <footer>roitcore · alle Links an einem Ort</footer>
 
 </div>
+
+<script>
+  // Prüft über die freie decapi.me-Schnittstelle, ob der Twitch-Kanal gerade live ist.
+  // Kein eigener Server und kein API-Key nötig; läuft rein im Browser der Besucher.
+  (function () {
+    var TWITCH_CHANNEL = "roitcore";
+    var chip = document.getElementById("live-chip");
+    var label = document.getElementById("live-label");
+
+    function setOffline() {
+      chip.classList.remove("is-live");
+      label.textContent = "Offline";
+    }
+
+    function setLive() {
+      chip.classList.add("is-live");
+      label.textContent = "Live";
+    }
+
+    function checkStatus() {
+      fetch("https://decapi.me/twitch/uptime/" + TWITCH_CHANNEL + "?offline_msg=offline")
+        .then(function (res) { return res.text(); })
+        .then(function (text) {
+          var clean = text.trim().toLowerCase();
+          if (clean === "offline" || clean.indexOf("error") !== -1) {
+            setOffline();
+          } else {
+            setLive();
+          }
+        })
+        .catch(function () {
+          // Bei Netzwerkfehlern bleibt der zuletzt bekannte Status stehen.
+        });
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 60000); // alle 60 Sekunden neu prüfen
+  })();
+</script>
+
 </body>
 </html>
